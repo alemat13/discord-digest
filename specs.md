@@ -1,11 +1,11 @@
-```markdown
 # Cahier des Charges - Bot Discord Daily Digest
 
 ## 1. Objectif du Bot
-Le bot Discord doit fournir un résumé quotidien des messages postés sur tous les salons d'un serveur, en publiant ce résumé à 21h sur le salon #daily-digest. Le résumé devra être une synthèse des échanges principaux, structuré de manière claire (titres, bullet points).
+Le bot Discord doit fournir un résumé quotidien des messages postés sur tous les salons d'un serveur, en publiant ce résumé à 21h sur le salon #daily-digest. Le résumé devra être une synthèse des échanges principaux, structurée de manière claire (titres, bullet points).
 
 ## 2. Contenu du Résumé
 - Synthèse des échanges principaux de tous les salons, avec priorité aux messages ayant reçu le plus de réactions et une évaluation automatisée de la pertinence.
+- Récupération de l'historique des messages sur 24 heures tous les jours à 21h.
 - Résumé global regroupant tous les salons (plutôt qu'un résumé par salon).
 - Style amical et structuration avec titres et bullet points.
 
@@ -53,4 +53,3 @@ Le bot Discord doit fournir un résumé quotidien des messages postés sur tous 
 
 ## 14. Limites du Résumé
 - Le résumé pourra être assez détaillé, avec une limite de longueur à déterminer ultérieurement.
-```
