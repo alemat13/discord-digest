@@ -10,3 +10,6 @@ venv/
 # Clés et tokens
 __pycache__/
 *.pyc
+
+# Secrets file
+secrets.json
