@@ -14,3 +14,7 @@ __pycache__/
 # Secrets files
 secrets.json
 local.settings.json
+.python_packages
+
+# VS Code
+.vscode/
