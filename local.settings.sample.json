@@ -1,0 +1,11 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+      "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+      "FUNCTIONS_WORKER_RUNTIME": "python",
+      "DISCORD_TOKEN": "ton_token_discord_ici",
+      "OPENAI_API_KEY": "ta_cle_api_openai_ici",
+      "OPENAI_ENDPOINT_URL": "https://ton-endpoint-openai.azure.com/"
+    }
+  }
+  
