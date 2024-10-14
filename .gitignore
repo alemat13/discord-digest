@@ -1,0 +1,12 @@
+# Environnement virtuel
+venv/
+
+# Fichiers de configuration locaux
+*.env
+
+# Fichiers logs
+*.log
+
+# Clés et tokens
+__pycache__/
+*.pyc
