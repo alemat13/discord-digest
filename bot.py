@@ -1,8 +1,9 @@
 import os
 import json
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import openai
+from datetime import datetime, timedelta
 
 # Récupérer le token du bot depuis les variables d'environnement
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -18,7 +19,8 @@ if TOKEN is None:
     except FileNotFoundError:
         raise FileNotFoundError("Le fichier secrets.json est introuvable. Assurez-vous de l'avoir créé.")
 
-# Vérifier que le token est bien récupéré\ nif TOKEN is None:
+# Vérifier que le token est bien récupéré
+if TOKEN is None:
     raise ValueError("Le token Discord n'a pas été trouvé. Assurez-vous que la variable d'environnement DISCORD_TOKEN est définie ou que le fichier secrets.json est correct.")
 
 # Définir les intents nécessaires pour le bot
@@ -65,6 +67,35 @@ def generate_summary(messages):
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} est connecté et prêt à fonctionner.')
+    publish_summary.start()   # Démarrer la publication quotidienne des résumés
+
+# Tâche planifiée pour publier le résumé quotidien
+@tasks.loop(time=datetime.now().replace(hour=21, minute=0, second=0, microsecond=0))
+async def publish_summary():
+    summary_channel = discord.utils.get(bot.get_all_channels(), name="daily-digest")
+    if summary_channel is None:
+        print("Le salon #daily-digest n'a pas été trouvé.")
+        return
+
+    # Récupérer les messages des 24 dernières heures pour chaque salon
+    all_messages = []
+    for guild in bot.guilds:
+        for channel in guild.text_channels:
+            if channel.name == "bienvenue":
+                continue
+            try:
+                # Récupérer les messages des dernières 24 heures
+                yesterday = datetime.utcnow() - timedelta(days=1)
+                async for message in channel.history(after=yesterday):
+                    all_messages.append(f"[{message.author.display_name}] {message.content}")
+            except Exception as e:
+                print(f"Erreur lors de la récupération des messages du salon {channel.name}: {e}")
+
+    if all_messages:
+        summary = generate_summary(all_messages)
+        await summary_channel.send(f"**Résumé du jour** :\n{summary}")
+    else:
+        await summary_channel.send("Aucun message notable aujourd'hui.")
 
 # Lancer le bot
 bot.run(TOKEN)
