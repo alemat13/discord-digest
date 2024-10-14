@@ -1,59 +1,30 @@
+import logging
 import os
 import json
 import discord
 from discord.ext import commands, tasks
 import openai
+import azure.functions as func
 from datetime import datetime, timedelta
 
-# Récupérer le token du bot depuis les variables d'environnement
 TOKEN = os.getenv('DISCORD_TOKEN')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+OPENAI_ENDPOINT_URL = os.getenv('OPENAI_ENDPOINT_URL')
 
-# Si la variable d'environnement n'est pas définie, récupérer depuis un fichier de configuration secret
-if TOKEN is None:
-    try:
-        with open('secrets.json') as f:
-            secrets = json.load(f)
-            TOKEN = secrets.get('DISCORD_TOKEN')
-            if TOKEN is None:
-                raise ValueError("Le token Discord n'est pas défini dans secrets.json.")
-    except FileNotFoundError:
-        raise FileNotFoundError("Le fichier secrets.json est introuvable. Assurez-vous de l'avoir créé.")
+if TOKEN is None or OPENAI_API_KEY is None or OPENAI_ENDPOINT_URL is None:
+    raise ValueError("Les informations d'authentification ne sont pas correctement définies dans les variables d'environnement.")
 
-# Vérifier que le token est bien récupéré
-if TOKEN is None:
-    raise ValueError("Le token Discord n'a pas été trouvé. Assurez-vous que la variable d'environnement DISCORD_TOKEN est définie ou que le fichier secrets.json est correct.")
+openai.api_key = OPENAI_API_KEY
+openai.api_base = OPENAI_ENDPOINT_URL
 
-# Définir les intents nécessaires pour le bot
 intents = discord.Intents.default()
 intents.messages = True  # Autoriser l'accès aux messages du serveur
 intents.guilds = True    # Autoriser l'accès aux informations des serveurs
 intents.reactions = True  # Autoriser l'accès aux réactions
 intents.message_content = True  # Autoriser l'accès au contenu des messages (nécessaire si tu veux analyser les messages)
 
-# Créer l'instance du bot avec les intents définis
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Récupérer la clé API et l'URL d'endpoint OpenAI depuis les variables d'environnement
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-OPENAI_ENDPOINT_URL = os.getenv('OPENAI_ENDPOINT_URL')
-
-# Si la clé API n'est pas définie, la récupérer depuis le fichier de configuration secret
-if OPENAI_API_KEY is None or OPENAI_ENDPOINT_URL is None:
-    try:
-        with open('secrets.json') as f:
-            secrets = json.load(f)
-            OPENAI_API_KEY = secrets.get('OPENAI_API_KEY')
-            OPENAI_ENDPOINT_URL = secrets.get('OPENAI_ENDPOINT_URL')
-            if OPENAI_API_KEY is None or OPENAI_ENDPOINT_URL is None:
-                raise ValueError("Les informations OpenAI ne sont pas définies dans secrets.json.")
-    except FileNotFoundError:
-        raise FileNotFoundError("Le fichier secrets.json est introuvable. Assurez-vous de l'avoir créé.")
-
-# Configurer OpenAI
-openai.api_key = OPENAI_API_KEY
-openai.api_base = OPENAI_ENDPOINT_URL
-
-# Fonction pour générer un résumé
 def generate_summary(messages):
     prompt = "Rédige un résumé des messages suivants : " + "\n".join(messages)
     response = openai.Completion.create(
@@ -63,33 +34,29 @@ def generate_summary(messages):
     )
     return response.choices[0].text.strip()
 
-# Événement déclenché lorsque le bot est prêt
 @bot.event
 async def on_ready():
-    print(f'{bot.user.name} est connecté et prêt à fonctionner.')
-    publish_summary.start()   # Démarrer la publication quotidienne des résumés
+    logging.info(f'{bot.user.name} est connecté et prêt à fonctionner.')
+    publish_summary.start()
 
-# Tâche planifiée pour publier le résumé quotidien
 @tasks.loop(time=datetime.now().replace(hour=21, minute=0, second=0, microsecond=0))
 async def publish_summary():
     summary_channel = discord.utils.get(bot.get_all_channels(), name="daily-digest")
     if summary_channel is None:
-        print("Le salon #daily-digest n'a pas été trouvé.")
+        logging.error("Le salon #daily-digest n'a pas été trouvé.")
         return
 
-    # Récupérer les messages des 24 dernières heures pour chaque salon
     all_messages = []
     for guild in bot.guilds:
         for channel in guild.text_channels:
             if channel.name == "bienvenue":
                 continue
             try:
-                # Récupérer les messages des dernières 24 heures
                 yesterday = datetime.utcnow() - timedelta(days=1)
                 async for message in channel.history(after=yesterday):
                     all_messages.append(f"[{message.author.display_name}] {message.content}")
             except Exception as e:
-                print(f"Erreur lors de la récupération des messages du salon {channel.name}: {e}")
+                logging.error(f"Erreur lors de la récupération des messages du salon {channel.name}: {e}")
 
     if all_messages:
         summary = generate_summary(all_messages)
@@ -97,5 +64,6 @@ async def publish_summary():
     else:
         await summary_channel.send("Aucun message notable aujourd'hui.")
 
-# Lancer le bot
-bot.run(TOKEN)
+async def main(req: func.HttpRequest) -> func.HttpResponse:
+    bot.run(TOKEN)
+    return func.HttpResponse("Bot lancé", status_code=200)

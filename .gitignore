@@ -11,5 +11,6 @@ venv/
 __pycache__/
 *.pyc
 
-# Secrets file
+# Secrets files
 secrets.json
+local.settings.json
