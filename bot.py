@@ -2,6 +2,7 @@ import os
 import json
 import discord
 from discord.ext import commands
+import aiohttp
 
 # Récupérer le token du bot depuis les variables d'environnement
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -28,8 +29,19 @@ intents.guilds = True    # Autoriser l'accès aux informations des serveurs
 intents.reactions = True  # Autoriser l'accès aux réactions
 intents.message_content = True  # Autoriser l'accès au contenu des messages (nécessaire si tu veux analyser les messages)
 
+# Configurer le proxy si nécessaire
+proxy = os.getenv('HTTPS_PROXY') or os.getenv('HTTP_PROXY')
+
+# Créer une session HTTP avec ou sans proxy
+session = None
+if proxy:
+    connector = aiohttp.TCPConnector(ssl=False)
+    session = aiohttp.ClientSession(connector=connector, proxy=proxy)
+else:
+    session = aiohttp.ClientSession()
+
 # Créer l'instance du bot avec les intents définis
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, session=session)
 
 # Événement déclenché lorsque le bot est prêt
 @bot.event
